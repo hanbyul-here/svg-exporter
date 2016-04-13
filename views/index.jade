@@ -1,0 +1,10 @@
+extends layout
+
+block content
+  h1= title
+  form(action='/request-map' method='post')
+    input(type='text' name='startLat' placeholder="start latitude")
+    input(type='text' name='startLon' placeholder="start longitude")
+    input(type='text' name='endLat' placeholder="end latitude")
+    input(type='text' name='endLon' placeholder="end longitude")
+    input(type='submit' name='coord-submit' value='submit')
