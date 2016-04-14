@@ -6,6 +6,7 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "babel-polyfill": "^6.7.4",
     "body-parser": "~1.13.2",
     "cookie-parser": "~1.3.5",
     "d3": "^3.5.12",
@@ -16,7 +17,9 @@
     "jade": "~1.11.0",
     "jsdom": "^8.3.1",
     "morgan": "~1.6.1",
+    "node-fetch": "^1.5.1",
     "proj4": "^2.3.12",
+    "promise": "^7.1.1",
     "reproject": "^1.0.0",
     "serve-favicon": "~2.3.0",
     "xhr2": "^0.1.3"
