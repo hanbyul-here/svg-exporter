@@ -3,8 +3,11 @@ extends layout
 block content
   h1= title
   form(action='/request-map' method='post')
-    input(type='text' name='startLat' placeholder="start latitude")
-    input(type='text' name='startLon' placeholder="start longitude")
-    input(type='text' name='endLat' placeholder="end latitude")
-    input(type='text' name='endLon' placeholder="end longitude")
+    input#startLat(type='text' name='startLat' placeholder="start latitude")
+    input#startLon(type='text' name='startLon' placeholder="start longitude")
+    input#endLat(type='text' name='endLat' placeholder="end latitude")
+    input#endLon(type='text' name='endLon' placeholder="end longitude")
     input(type='submit' name='coord-submit' value='submit')
+  #map
+
+  script(src='/javascripts/index.js')
