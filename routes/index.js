@@ -64,6 +64,14 @@ router.post('/request-map', function(req, res, next) {
   // need uis for datakind, zoom
   var dataKind = "boundaries,earth,landuse,places,roads,transit,water"
 
+  var dKinds = dataKind.split(',');
+
+  var subJsons = [];
+
+  for (var i = 0; i < dKinds.length; i++) {
+    subJsons.push([])
+  }
+
 
   var tilesToFetch = [];
 
@@ -89,7 +97,6 @@ router.post('/request-map', function(req, res, next) {
     lat: tile2Lat(requestStartLat, zoom),
     zoom: zoom
   };
-  console.log(tilesToFetch);
 
   var outputLocation = 'svgmap'+ tilesToFetch[0][0].lon +'-'+tilesToFetch[0][0].lat +'-'+ centerLatLon.zoom +'.svg';
 
@@ -111,7 +118,6 @@ router.post('/request-map', function(req, res, next) {
     for(let x of xarr) {
       for(let y of yarr) {
         var baseurl = "http://vector.mapzen.com/osm/"+dataKind+"/"+zoom+"/"+tilesToFetch[x][y].lon + "/" + tilesToFetch[x][y].lat + ".json?api_key="+key;
-        console.log(baseurl);
         fetch(baseurl)
         .then(function(res) {
           return res.json();
@@ -123,7 +129,18 @@ router.post('/request-map', function(req, res, next) {
             geodata: json
           });
 
-          if(responseGeojsons.length == totalCallNum) resolve(responseGeojsons);
+          for(var key in json) {
+            for(var featureName in dKinds) {
+              if( key === dKinds[featureName]) {
+                subJsons[featureName].push(json[key]);
+              }
+            }
+          }
+
+          if(responseGeojsons.length == totalCallNum) {
+            responseGeojsons = subJsons;
+            resolve(responseGeojsons);
+          }
         })
         .catch(function(err) {
           console.log('error!')
@@ -138,6 +155,9 @@ router.post('/request-map', function(req, res, next) {
   allGeojsonPromise
   .then(
     function(geojsons) {
+    //break down geojsons into the categories
+
+
     //d3 needs query selector from dom
     jsdom.env({
 
@@ -180,8 +200,25 @@ router.post('/request-map', function(req, res, next) {
                     .attr('height',tileWidth)*/
 
           var g = svg.append('g');
-                 // .attr('clip-path','url(#tile-boundary-hor-'+data.horIndex+'-ver-'+data.verIndex+')');
-          for(var obj in data.geodata) {
+          for(var k = 0; k < data.length; k++) {
+            for(var j = 0; j< data[k].features.length; j++) {
+                var geoFeature = data[k].features[j];
+                var previewPath = d3.geo.path().projection(previewProjection);
+                var previewFeature = previewPath(geoFeature);
+
+                if(previewFeature !== undefined) {
+                  if(previewFeature.indexOf('a') > 0) ;
+                  else {
+                    g.append('path')
+                      .attr('d', previewFeature)
+                      .attr('fill','none')
+                      .attr('stroke','black')
+                  }
+                }
+            }
+          }
+                   // .attr('clip-path','url(#tile-boundary-hor-'+data.horIndex+'-ver-'+data.verIndex+')');
+          /*for(var obj in data.geodata) {
             for(j = 0; j< data.geodata[obj].features.length; j++) {
 
               var geoFeature = data.geodata[obj].features[j];
@@ -199,7 +236,8 @@ router.post('/request-map', function(req, res, next) {
               }
             }
           }
-        }
+        }*/
+      }
 
        fs.writeFile(outputLocation, window.d3.select('.container').html(),(err)=> {
           if(err) throw err;
