@@ -1,13 +1,12 @@
 doctype html
 html
   head
+    meta(charset='utf-8')
+    meta(http-equiv='x-ua-compatible', content='ie=edge')
     title= title
-    link(rel='stylesheet', href='/stylesheets/style.css')
     link(rel='stylesheet', href='http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css')
     link(rel='stylesheet', href='/stylesheets/leaflet-areaselect.css')
-    script(src='http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js')
-    script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js")
-    script(src='/javascripts/leaflet-areaselect.js')
-
+    link(rel='stylesheet', href='https://mapzen.com/common/styleguide/styles/styleguide.css')
+    link(rel='stylesheet', href='/stylesheets/style.css')
   body
     block content

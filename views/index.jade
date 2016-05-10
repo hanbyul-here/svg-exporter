@@ -1,13 +1,74 @@
 extends layout
 
 block content
-  h1= title
-  form(action='/request-map' method='post')
-    input#startLat(type='text' name='startLat' placeholder="start latitude")
-    input#startLon(type='text' name='startLon' placeholder="start longitude")
-    input#endLat(type='text' name='endLat' placeholder="end latitude")
-    input#endLon(type='text' name='endLon' placeholder="end longitude")
-    input(type='submit' name='coord-submit' value='submit')
-  #map
+  .container
+    h1= title
+    .row
+      .col-md-8
+        #map
+      .col-md-4
+        form(action='/request-map' method='post')
+          fieldset.form-group
+            label(for='startLat') startLat
+            input.form-control#startLat(type='text' name='startLat' placeholder="start latitude")
+          fieldset.form-group
+            label(for='startLon') startLongitude
+            input.form-control#startLon(type='text' name='startLon' placeholder="start longitude")
+          fieldset.form-group
+            label(for='endLat') endLatitude
+            input.form-control#endLat(type='text' name='endLat' placeholder="end latitude")
+          fieldset.form-group
+            label(for='endLon') endLongitude
+            input.form-control#endLon(type='text' name='endLon' placeholder="end longitude")
 
+          select#zoomLevel(name='select')
+            option(value='16') 16
+            option(value='15') 15
+            option(value='14') 14
+            option(value='13') 13
+            option(value='12') 12
+            option(value='11') 11
+            option(value='10') 10
+            option(value='9') 9
+            option(value='8') 8
+            option(value='7') 7
+            option(value='6') 6
+            option(value='5') 5
+            option(value='4') 4
+            option(value='3') 3
+            option(value='2') 2
+
+          .checkbox
+            label
+              input(type='checkbox', value='boundaries')
+              | boundaries
+          .checkbox
+            label
+              input(type='checkbox', value='earth')
+              | earth
+          .checkbox
+            label
+              input(type='checkbox', value='landuse')
+              | landuse
+          .checkbox
+            label
+              input(type='checkbox', value='places')
+              | places
+          .checkbox
+            label
+              input(type='checkbox', value='roads')
+              | roads
+          .checkbox
+            label
+              input(type='checkbox', value='transit')
+              | transit
+          .checkbox
+            label
+              input(type='checkbox', value='water')
+              | water
+          input.btn.btn-primary.btn-mapzen(type='submit' name='coord-submit' value='submit')
+
+  script(src='http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js')
+  script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js")
+  script(src='/javascripts/leaflet-areaselect.js')
   script(src='/javascripts/index.js')
