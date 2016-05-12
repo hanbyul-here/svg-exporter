@@ -18,7 +18,6 @@
     "jsdom": "^8.3.1",
     "morgan": "~1.6.1",
     "node-fetch": "^1.5.1",
-    "proj4": "^2.3.12",
     "promise": "^7.1.1",
     "reproject": "^1.0.0",
     "serve-favicon": "~2.3.0",

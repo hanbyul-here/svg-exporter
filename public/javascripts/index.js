@@ -1,11 +1,13 @@
 // initialize map
 
-var map = L.map('map').setView([40.7142700, -74.0059700], 14);
+var map = L.map('map',{minZoom: 2}).setView([40.7142700, -74.0059700], 14);
 
 L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
+
+var hash = new L.Hash(map);
 var areaSelect = L.areaSelect({width:200, height:250});
 areaSelect.on("change", function() {
 var bounds = this.getBounds();

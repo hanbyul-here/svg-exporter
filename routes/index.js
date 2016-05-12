@@ -31,34 +31,35 @@ router.get('/request-map', function(req, res, next) {
 router.post('/request-map', function(req, res, next) {
   var startLat, endLat, startLon, endLon;
 
-  if(req.body.startLat > req.body.endLat) {
-    startLat = parseFloat(req.body.startLat);
-    endLat = parseFloat(req.body.endLat);
-  } else {
-    startLat = parseFloat(req.body.endLat);
-    endLat = parseFloat(req.body.startLat);
-  }
-
-  if(Math.abs(req.body.startLon) > Math.abs(req.body.endLon)) {
-    startLon = parseFloat(req.body.startLon);
-    endLon = parseFloat(req.body.endLon);
-  } else {
-    startLon = parseFloat(req.body.endLon);
-    endLon = parseFloat(req.body.startLon);
-  }
-
   // -74.0059700, 40.7142700
   // 74.0059700 W, 40.7142700 N
 
-  var zoom = 15;
+  var zoom = parseInt(req.body.zoomLevel);
+
+  var lat1 = lat2tile(parseFloat(req.body.startLat), zoom)
+  var lat2 = lat2tile(parseFloat(req.body.endLat), zoom)
+
+  var lon1 = long2tile(parseFloat(req.body.startLon)%180, zoom)
+  var lon2 = long2tile(parseFloat(req.body.endLon)%180, zoom)
+
+  if(lat1 > lat2) {
+    startLat = lat2;
+    endLat = lat1;
+  } else {
+    startLat = lat1;
+    endLat = lat2;
+  }
+
+  if(lon1 > lon2) {
+    startLon = lon2;
+    endLon = lon1;
+  } else {
+    startLon = lon1;
+    endLon = lon2;
+  }
+
 
   var tileWidth = 100;
-
-  var requestStartLon = long2tile(startLon,  zoom);
-  var requestStartLat = lat2tile(startLat, zoom);
-
-  var requestEndLon = long2tile(endLon, zoom);
-  var requestEndLat = lat2tile(endLat, zoom);
 
   //"boundaries, buildings, earth, landuse, places, pois, roads, transit, water"
   // need uis for datakind, zoom
@@ -97,9 +98,8 @@ router.post('/request-map', function(req, res, next) {
   var latArr = [];
   var lonArr = [];
 
-  for(let i = requestStartLon; i <= requestEndLon; i++) lonArr.push(i);
-  for(let j = requestStartLat; j <= requestEndLat; j++) latArr.push(j);
-
+  for(let i = startLon; i <= endLon; i++) lonArr.push(i);
+  for(let j = startLat; j <= endLat; j++) latArr.push(j);
   for(let _lat of latArr) {
     var coords = [];
     for(let _lon of lonArr) {
@@ -112,13 +112,14 @@ router.post('/request-map', function(req, res, next) {
   }
 
   var centerLatLon = {
-    lon: tile2Lon(requestStartLon, zoom),
-    lat: tile2Lat(requestStartLat, zoom),
+    lon: tile2Lon(startLon, zoom),
+    lat: tile2Lat(startLat, zoom),
     zoom: zoom
   };
 
   var qps = 1000; // let's make only 1000 calls per sec
   var delayTime = 1000;
+
 
   var outputLocation = 'svgmap'+ tilesToFetch[0][0].lon +'-'+tilesToFetch[0][0].lat +'-'+ centerLatLon.zoom +'.svg';
 
@@ -185,7 +186,6 @@ router.post('/request-map', function(req, res, next) {
   }, function (reason) {
     console.log(reason)
   }).then(function (reResult) {
-    console.log(reResult['boundaries']['etc'].features);
 
 
     //d3 needs query selector from dom
@@ -228,7 +228,7 @@ router.post('/request-map', function(req, res, next) {
               let previewFeature = previewPath(geoFeature);
 
 
-              if(previewFeature.indexOf('a') > 0) ;
+              if(previewFeature && previewFeature.indexOf('a') > 0) ;
               else {
                 subG.append('path')
                   .attr('d', previewFeature)
@@ -241,7 +241,7 @@ router.post('/request-map', function(req, res, next) {
       fs.writeFile(outputLocation, window.d3.select('.container').html(),(err)=> {
           if(err) throw err;
           console.log('yess svg is there')
-          res.send(requestStartLon + ' ' + requestStartLat + 'process is done, waiting for a file to be written');
+          res.send(startLon + ' ' + startLat + 'process is done, waiting for a file to be written');
        })
       //jsdom done function done
       }
