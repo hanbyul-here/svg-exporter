@@ -10,9 +10,8 @@ var jsdom = require('jsdom');
 var d3 = require('d3');
 var fetch = require('node-fetch');
 
+var config = require('./config.js');
 
-//key  vector-tiles-xaDJOzg
-var key = 'vector-tiles-xaDJOzg';
 
 var Promise = require('promise/lib/es6-extensions');
 
@@ -33,14 +32,14 @@ router.post('/request-map', function(req, res, next) {
 
   // -74.0059700, 40.7142700
   // 74.0059700 W, 40.7142700 N
-
+console.log(req.body);
   var zoom = parseInt(req.body.zoomLevel);
 
   var lat1 = lat2tile(parseFloat(req.body.startLat), zoom)
   var lat2 = lat2tile(parseFloat(req.body.endLat), zoom)
 
-  var lon1 = long2tile(parseFloat(req.body.startLon)%180, zoom)
-  var lon2 = long2tile(parseFloat(req.body.endLon)%180, zoom)
+  var lon1 = long2tile(parseFloat(req.body.startLon), zoom)
+  var lon2 = long2tile(parseFloat(req.body.endLon), zoom)
 
   if(lat1 > lat2) {
     startLat = lat2;
@@ -63,13 +62,25 @@ router.post('/request-map', function(req, res, next) {
 
   //"boundaries, buildings, earth, landuse, places, pois, roads, transit, water"
   // need uis for datakind, zoom
-  var dataKind = "boundaries,earth,landuse,places,roads,water"
+ // var dataKind = "boundaries,earth,landuse,places,roads,water"
   // only dominant kinds from osm will be categorized
 
 
-  var dKinds = dataKind.split(',');
+  //var dKinds = dataKind.split(',');
   var reformedJson = {};
   var subJsons = [];
+
+
+  var dKinds = [];
+  if(req.body.boundaries) dKinds.push('boundaries');
+  if(req.body.earth) dKinds.push('earth');
+  if(req.body.landuse) dKinds.push('landuse');
+  if(req.body.places) dKinds.push('places');
+  if(req.body.roads) dKinds.push('roads');
+  if(req.body.water) dKinds.push('water');
+
+  var dataKind = dKinds.join(',');
+  console.log(dataKind);
 
   for (var i = 0; i < dKinds.length; i++) {
     subJsons.push([])
@@ -97,6 +108,8 @@ router.post('/request-map', function(req, res, next) {
 
   var latArr = [];
   var lonArr = [];
+
+  var key = req.body.apikey || config.key;
 
   for(let i = startLon; i <= endLon; i++) lonArr.push(i);
   for(let j = startLat; j <= endLat; j++) latArr.push(j);
@@ -128,7 +141,6 @@ router.post('/request-map', function(req, res, next) {
   var getGeojsonPromise = function (x, y) {
     var geoJsonPromise = new Promise(function(resolve, reject) {
       var baseurl = "http://vector.mapzen.com/osm/"+dataKind+"/"+zoom+"/"+tilesToFetch[x][y].lon + "/" + tilesToFetch[x][y].lat + ".json?api_key="+key;
-
       var timeout = Math.floor((x*y + y) / qps ) * delayTime;
       setTimeout(function () {
         fetch(baseurl)

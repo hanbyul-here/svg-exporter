@@ -9,6 +9,9 @@ block content
       .col-md-4
         form(action='/request-map' method='post')
           fieldset.form-group
+            label(for='apikey') Vector Tiles API Key
+            input.form-control#api-key(type='text' name='apikey' placeholder="vector-tiles-xxxx")
+          fieldset.form-group
             label(for='startLat') startLat
             input.form-control#startLat(type='text' name='startLat' placeholder="start latitude")
           fieldset.form-group
@@ -40,31 +43,31 @@ block content
 
           .checkbox
             label
-              input(type='checkbox', value='boundaries')
+              input(type='checkbox', name='boundaries' checked)
               | boundaries
           .checkbox
             label
-              input(type='checkbox', value='earth')
+              input(type='checkbox', name='earth')
               | earth
           .checkbox
             label
-              input(type='checkbox', value='landuse')
+              input(type='checkbox', name='landuse')
               | landuse
           .checkbox
             label
-              input(type='checkbox', value='places')
+              input(type='checkbox', name='places')
               | places
           .checkbox
             label
-              input(type='checkbox', value='roads')
+              input(type='checkbox', name='roads')
               | roads
           .checkbox
             label
-              input(type='checkbox', value='transit')
+              input(type='checkbox', name='transit')
               | transit
           .checkbox
             label
-              input(type='checkbox', value='water')
+              input(type='checkbox', name='water' checked)
               | water
           input.btn.btn-primary.btn-mapzen(type='submit' name='coord-submit' value='submit')
 
@@ -72,4 +75,5 @@ block content
   script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js")
   script(src='/javascripts/leaflet-areaselect.js')
   script(src='https://cdnjs.cloudflare.com/ajax/libs/leaflet-hash/0.2.1/leaflet-hash.min.js')
+  script(src='https://cdnjs.cloudflare.com/ajax/libs/leaflet-geocoder-mapzen/1.4.1/leaflet-geocoder-mapzen.js')
   script(src='/javascripts/index.js')

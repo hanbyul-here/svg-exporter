@@ -8,6 +8,9 @@ L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
 
 
 var hash = new L.Hash(map);
+
+L.control.geocoder('search-waNZobx').addTo(map);
+
 var areaSelect = L.areaSelect({width:200, height:250});
 areaSelect.on("change", function() {
 var bounds = this.getBounds();
