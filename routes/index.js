@@ -10,9 +10,8 @@ var jsdom = require('jsdom');
 var d3 = require('d3');
 var fetch = require('node-fetch');
 
+var config = require('./config.js');
 
-//key  vector-tiles-xaDJOzg
-var key = 'vector-tiles-xaDJOzg';
 
 var Promise = require('promise/lib/es6-extensions');
 
@@ -31,48 +30,93 @@ router.get('/request-map', function(req, res, next) {
 router.post('/request-map', function(req, res, next) {
   var startLat, endLat, startLon, endLon;
 
-  if(req.body.startLat > req.body.endLat) {
-    startLat = parseFloat(req.body.startLat);
-    endLat = parseFloat(req.body.endLat);
-  } else {
-    startLat = parseFloat(req.body.endLat);
-    endLat = parseFloat(req.body.startLat);
-  }
-
-  if(Math.abs(req.body.startLon) > Math.abs(req.body.endLon)) {
-    startLon = parseFloat(req.body.startLon);
-    endLon = parseFloat(req.body.endLon);
-  } else {
-    startLon = parseFloat(req.body.endLon);
-    endLon = parseFloat(req.body.startLon);
-  }
-
   // -74.0059700, 40.7142700
   // 74.0059700 W, 40.7142700 N
+console.log(req.body);
+  var zoom = parseInt(req.body.zoomLevel);
 
-  var zoom = 15;
+  var lat1 = lat2tile(parseFloat(req.body.startLat), zoom)
+  var lat2 = lat2tile(parseFloat(req.body.endLat), zoom)
+
+  var lon1 = long2tile(parseFloat(req.body.startLon), zoom)
+  var lon2 = long2tile(parseFloat(req.body.endLon), zoom)
+
+  if(lat1 > lat2) {
+    startLat = lat2;
+    endLat = lat1;
+  } else {
+    startLat = lat1;
+    endLat = lat2;
+  }
+
+  if(lon1 > lon2) {
+    startLon = lon2;
+    endLon = lon1;
+  } else {
+    startLon = lon1;
+    endLon = lon2;
+  }
+
 
   var tileWidth = 100;
 
-  var requestStartLon = long2tile(startLon,  zoom);
-  var requestStartLat = lat2tile(startLat, zoom);
-
-  var requestEndLon = long2tile(endLon, zoom);
-  var requestEndLat = lat2tile(endLat, zoom);
-
   //"boundaries, buildings, earth, landuse, places, pois, roads, transit, water"
   // need uis for datakind, zoom
-  var dataKind = "boundaries,earth,landuse,places,roads,transit,water"
+ // var dataKind = "boundaries,earth,landuse,places,roads,water"
+  // only dominant kinds from osm will be categorized
 
+
+  //var dKinds = dataKind.split(',');
+  var reformedJson = {};
+  var subJsons = [];
+
+
+  var dKinds = [];
+  if(req.body.boundaries) dKinds.push('boundaries');
+  if(req.body.earth) dKinds.push('earth');
+  if(req.body.landuse) dKinds.push('landuse');
+  if(req.body.places) dKinds.push('places');
+  if(req.body.roads) dKinds.push('roads');
+  if(req.body.water) dKinds.push('water');
+
+  var dataKind = dKinds.join(',');
+
+  for (var i = 0; i < dKinds.length; i++) {
+    subJsons.push([])
+    // this is sublayer for each data layer
+    // should add more meaningful layers for each
+    if(dKinds[i] === 'roads')
+      reformedJson[dKinds[i]] = {
+        major_road: {
+          features: []
+        },
+        minor_road: {
+          features: []
+        },
+        highway: {
+          features:[]
+        },
+        etc: {
+          features: []
+        }
+      }
+    else
+      reformedJson[dKinds[i]] = {
+        etc: {
+          features: []
+        }
+      }
+  }
 
   var tilesToFetch = [];
 
   var latArr = [];
   var lonArr = [];
 
-  for(let i = requestStartLon; i <= requestEndLon; i++) lonArr.push(i);
-  for(let j = requestStartLat; j <= requestEndLat; j++) latArr.push(j);
+  var key = req.body.apikey || config.key;
 
+  for(let i = startLon; i <= endLon; i++) lonArr.push(i);
+  for(let j = startLat; j <= endLat; j++) latArr.push(j);
   for(let _lat of latArr) {
     var coords = [];
     for(let _lon of lonArr) {
@@ -85,59 +129,81 @@ router.post('/request-map', function(req, res, next) {
   }
 
   var centerLatLon = {
-    lon: tile2Lon(requestStartLon, zoom),
-    lat: tile2Lat(requestStartLat, zoom),
+    lon: tile2Lon(startLon, zoom),
+    lat: tile2Lat(startLat, zoom),
     zoom: zoom
   };
-  console.log(tilesToFetch);
+
+  var qps = 1000; // let's make only 1000 calls per sec
+  var delayTime = 1000;
+
 
   var outputLocation = 'svgmap'+ tilesToFetch[0][0].lon +'-'+tilesToFetch[0][0].lat +'-'+ centerLatLon.zoom +'.svg';
 
   var data;
 
-
-  var allGeojsonPromise = new Promise(function(resolve, reject) {
-
-    var responseGeojsons = [];
-
-    var totalCallNum = tilesToFetch.length * tilesToFetch[0].length;
-
-    var xarr = []
-    var yarr = []
-
-    for(let i = 0; i<tilesToFetch.length; i++) xarr.push(i);
-    for(let j = 0; j<tilesToFetch[0].length; j++) yarr.push(j);
-
-    for(let x of xarr) {
-      for(let y of yarr) {
-        var baseurl = "http://vector.mapzen.com/osm/"+dataKind+"/"+zoom+"/"+tilesToFetch[x][y].lon + "/" + tilesToFetch[x][y].lat + ".json?api_key="+key;
-        console.log(baseurl);
+  var getGeojsonPromise = function (x, y) {
+    var geoJsonPromise = new Promise(function(resolve, reject) {
+      var baseurl = "http://vector.mapzen.com/osm/"+dataKind+"/"+zoom+"/"+tilesToFetch[x][y].lon + "/" + tilesToFetch[x][y].lat + ".json?api_key="+key;
+      var timeout = Math.floor((x*y + y) / qps ) * delayTime;
+      setTimeout(function () {
         fetch(baseurl)
-        .then(function(res) {
-          return res.json();
-        })
-        .then(function(json) {
-          responseGeojsons.push({
-            horIndex: x,
-            verIndex: y,
-            geodata: json
-          });
+        .then(function (res) {
+          var responseJson = res.json();
 
-          if(responseGeojsons.length == totalCallNum) resolve(responseGeojsons);
+          resolve(responseJson)
         })
-        .catch(function(err) {
-          console.log('error!')
-          console.log(err)
-        });
+        .catch(function (err) {
+          console.log('error while fetcing')
+          console.log(err);
+        })
+      }, timeout);
+    })
+
+    return geoJsonPromise;
+  }
+
+  var promiseArrs = [];
+
+  var xarr = []
+  var yarr = []
+
+  for(let i = 0; i<tilesToFetch.length; i++) xarr.push(i);
+  for(let j = 0; j<tilesToFetch[0].length; j++) yarr.push(j);
+
+  for(let x of xarr) {
+    for(let y of yarr) {
+      promiseArrs.push(getGeojsonPromise(x,y))
+    }
+  }
+
+
+
+  Promise.all(promiseArrs)
+  .then(function (result) {
+    for (let response in result) {
+      let responseResult = result[response]
+      for (let dataFeature in responseResult) {
+        // dataFeature here has all names
+        for (let i = 0; i < responseResult[dataFeature].features.length; i++) {
+          var feature = responseResult[dataFeature].features[i];
+          var dataKindTitle = feature.properties.kind;
+           if(reformedJson[dataFeature].hasOwnProperty(dataKindTitle)) {
+             reformedJson[dataFeature][dataKindTitle].features.push(feature);
+           }
+           else {
+             reformedJson[dataFeature]['etc'].features.push(feature)
+           }
+        }
       }
     }
-  })
+    return reformedJson;
+  //resolve(reformedJson)
+  }, function (reason) {
+    console.log(reason)
+  }).then(function (reResult) {
 
 
-
-  allGeojsonPromise
-  .then(
-    function(geojsons) {
     //d3 needs query selector from dom
     jsdom.env({
 
@@ -155,7 +221,6 @@ router.post('/request-map', function(req, res, next) {
                 height: tileWidth* tilesToFetch.length
               })
 
-
         var previewProjection = d3.geo.mercator()
                         .center([centerLatLon.lon, centerLatLon.lat])
                         //this are carved based on zoom 16, fit into 100px * 100px rect
@@ -163,62 +228,47 @@ router.post('/request-map', function(req, res, next) {
                         .precision(.0)
                         . translate([0, 0])
 
+        var previewPath = d3.geo.path().projection(previewProjection);
 
-        var i,j;
+        for (let dataK in reformedJson) {
+          let oneDataKind = reformedJson[dataK]
+          let g = svg.append('g')
+          g.attr('id',dataK)
+
+          for(let subKinds in oneDataKind) {
+            let tempSubK = oneDataKind[subKinds]
+            let subG = g.append('g')
+            subG.attr('id',subKinds)
+            for(let f in tempSubK.features) {
+              let geoFeature = tempSubK.features[f]
+              let previewFeature = previewPath(geoFeature);
 
 
-        for(i = 0; i< geojsons.length; i++) {
-          data = geojsons[i];
-
-          /*var defs = svg.append('defs')
-                    .append('clipPath')
-                    .attr('id','tile-boundary-hor-'+data.horIndex+'-ver-'+data.verIndex)
-                    .append('rect')
-                    .attr('x',data.verIndex*tileWidth)
-                    .attr('y',data.horIndex*tileWidth)
-                    .attr('width',tileWidth)
-                    .attr('height',tileWidth)*/
-
-          var g = svg.append('g');
-                 // .attr('clip-path','url(#tile-boundary-hor-'+data.horIndex+'-ver-'+data.verIndex+')');
-          for(var obj in data.geodata) {
-            for(j = 0; j< data.geodata[obj].features.length; j++) {
-
-              var geoFeature = data.geodata[obj].features[j];
-              var previewPath = d3.geo.path().projection(previewProjection);
-              var previewFeature = previewPath(geoFeature);
-
-              if(previewFeature !== undefined) {
-                if(previewFeature.indexOf('a') > 0) ;
-                else {
-                  g.append('path')
-                    .attr('d', previewFeature)
-                    .attr('fill','none')
-                    .attr('stroke','black')
-                }
+              if(previewFeature && previewFeature.indexOf('a') > 0) ;
+              else {
+                subG.append('path')
+                  .attr('d', previewFeature)
+                  .attr('fill','none')
+                  .attr('stroke','black')
               }
             }
           }
         }
-
-       fs.writeFile(outputLocation, window.d3.select('.container').html(),(err)=> {
+      fs.writeFile(outputLocation, window.d3.select('.container').html(),(err)=> {
           if(err) throw err;
           console.log('yess svg is there')
-          process.exit()
+          res.send(startLon + ' ' + startLat + 'process is done, waiting for a file to be written');
        })
-       return svg;
+      //jsdom done function done
       }
-    })
-  })
-  .then(function(svg) {
-    console.log('process done, waiting for a svg file to be written');
-    res.send(requestStartLon + ' ' + requestStartLat + 'process is done, waiting for a file to be written');
+    });
   })
   .catch(
     function(err) {
       console.log(err)
       res.send('error: ' + err);
   });
+
 
 });
 

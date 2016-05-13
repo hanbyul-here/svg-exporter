@@ -10,3 +10,7 @@ npm start
 ```
 
 Go to `localhost:3000` in any browser.
+
+### Mapzen Vector tile key
+
+You need an API Key for Mapzen Vector Tiles, you can get one free at [Mapzen developer portal](https://mapzen.com/developers).
