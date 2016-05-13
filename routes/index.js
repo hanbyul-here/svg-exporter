@@ -80,10 +80,11 @@ console.log(req.body);
   if(req.body.water) dKinds.push('water');
 
   var dataKind = dKinds.join(',');
-  console.log(dataKind);
 
   for (var i = 0; i < dKinds.length; i++) {
     subJsons.push([])
+    // this is sublayer for each data layer
+    // should add more meaningful layers for each
     if(dKinds[i] === 'roads')
       reformedJson[dKinds[i]] = {
         major_road: {
@@ -91,6 +92,9 @@ console.log(req.body);
         },
         minor_road: {
           features: []
+        },
+        highway: {
+          features:[]
         },
         etc: {
           features: []
