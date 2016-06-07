@@ -24,46 +24,46 @@ block content
             label(for='endLon') endLongitude
             input.form-control#endLon(type='text' name='endLon' placeholder="end longitude")
 
-        .form-group
-          select#zoomLevel(name='zoomLevel')
-            option(value='16') 16
-            option(value='15') 15
-            option(value='14') 14
-            option(value='13') 13
-            option(value='12') 12
-            option(value='11') 11
-            option(value='10') 10
-            option(value='9') 9
-            option(value='8') 8
-            option(value='7') 7
-            option(value='6') 6
-            option(value='5') 5
-            option(value='4') 4
-            option(value='3') 3
-            option(value='2') 2
+          .form-group
+            select#zoomLevel(name='zoomLevel')
+              option(value='16') 16
+              option(value='15') 15
+              option(value='14') 14
+              option(value='13') 13
+              option(value='12') 12
+              option(value='11') 11
+              option(value='10') 10
+              option(value='9') 9
+              option(value='8') 8
+              option(value='7') 7
+              option(value='6') 6
+              option(value='5') 5
+              option(value='4') 4
+              option(value='3') 3
+              option(value='2') 2
 
-        .form-group
-          input(type='checkbox', name='boundaries' checked)
-          label(for='boundaries') boundaries
-        .form-group
-          input(type='checkbox', name='earth')
-          label(for='earth') earth
-        .form-group
-          input(type='checkbox', name='landuse')
-          label(for='landuse') landuse
-        .form-group
-          input(type='checkbox', name='places')
-          label(for='places') places
-        .form-group
-          input(type='checkbox', name='roads')
-          label(for='roads') roads
-        .form-group
-          input(type='checkbox', name='transit')
-          label(for='transit') transit
-        .form-group
-          input(type='checkbox', name='water' checked)
-          label(for='water') water
-        input.btn.btn-primary.btn-mapzen(type='submit' name='coord-submit' value='submit')
+          .form-group
+            input(type='checkbox', name='boundaries' checked)
+            label(for='boundaries') boundaries
+          .form-group
+            input(type='checkbox', name='earth')
+            label(for='earth') earth
+          .form-group
+            input(type='checkbox', name='landuse')
+            label(for='landuse') landuse
+          .form-group
+            input(type='checkbox', name='places')
+            label(for='places') places
+          .form-group
+            input(type='checkbox', name='roads')
+            label(for='roads') roads
+          .form-group
+            input(type='checkbox', name='transit')
+            label(for='transit') transit
+          .form-group
+            input(type='checkbox', name='water' checked)
+            label(for='water') water
+          input.btn.btn-primary.btn-mapzen(type='submit' name='coord-submit' value='submit')
 
   script(src='http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js')
   script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js")
