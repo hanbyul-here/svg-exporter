@@ -11,10 +11,9 @@ var d3 = require('d3');
 var fetch = require('node-fetch');
 var XMLHttpRequest = require('xhr2')
 
-var config;
-// suse key saved in config file if there is a config file in same directory
-if (fs.existsSync('./config.js')) {
-    var config = require('./config.js')
+// use key saved in config file if there is a config file in same directory
+if (fs.existsSync( __dirname + '/config.js')) {
+  var config = require('./config.js')
 }
 
 
