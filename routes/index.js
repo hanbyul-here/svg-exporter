@@ -10,7 +10,7 @@ var jsdom = require('jsdom');
 var d3 = require('d3');
 var fetch = require('node-fetch');
 
-var config = require('./config.js');
+var config = require('./config.js') || undefined;
 
 
 var Promise = require('promise/lib/es6-extensions');
