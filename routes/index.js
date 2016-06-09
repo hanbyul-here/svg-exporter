@@ -11,7 +11,11 @@ var d3 = require('d3');
 var fetch = require('node-fetch');
 var XMLHttpRequest = require('xhr2')
 
-var config = require('./config.js');
+var config;
+// suse key saved in config file if there is a config file in same directory
+if (fs.existsSync('./config.js')) {
+    var config = require('./config.js')
+}
 
 
 var Promise = require('promise/lib/es6-extensions');
