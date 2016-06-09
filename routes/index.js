@@ -9,8 +9,9 @@ var jsdom = require('jsdom');
 
 var d3 = require('d3');
 var fetch = require('node-fetch');
+var XMLHttpRequest = require('xhr2')
 
-var config = require('./config.js') || undefined;
+var config = require('./config.js');
 
 
 var Promise = require('promise/lib/es6-extensions');
@@ -146,17 +147,29 @@ console.log(req.body);
     var geoJsonPromise = new Promise(function(resolve, reject) {
       var baseurl = "http://vector.mapzen.com/osm/"+dataKind+"/"+zoom+"/"+tilesToFetch[x][y].lon + "/" + tilesToFetch[x][y].lat + ".json?api_key="+key;
       var timeout = Math.floor((x*y + y) / qps ) * delayTime;
+      var request = new XMLHttpRequest();
       setTimeout(function () {
-        fetch(baseurl)
-        .then(function (res) {
-          var responseJson = res.json();
+        request.open('GET', baseurl, true);
+        request.onload = function() {
+          if (request.status >= 200 && request.status < 400) {
+            // Success!
+            var data = JSON.parse(request.responseText);
+            resolve(data);
+          } else {
+            // We reached our target server, but it returned an error
+            reject();
+            console.log('Server returend error')
 
-          resolve(responseJson)
-        })
-        .catch(function (err) {
-          console.log('error while fetcing')
-          console.log(err);
-        })
+          }
+        };
+
+        request.onerror = function() {
+          // There was a connection error of some sort
+          console.log('there was problem making call');
+        };
+
+        request.send();
+
       }, timeout);
     })
 
