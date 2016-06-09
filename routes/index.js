@@ -139,7 +139,7 @@ console.log(req.body);
     zoom: zoom
   };
 
-  var qps = 1000; // let's make only 1000 calls per sec
+  var qps = 10; // let's make only 1000 calls per sec
   var delayTime = 1000;
 
 
@@ -161,13 +161,12 @@ console.log(req.body);
             resolve(data);
           } else {
             // We reached our target server, but it returned an error
-            reject();
             console.log('Server returend error')
-
+            reject();
           }
         };
 
-        request.onerror = function() {
+        request.onerror = function(err) {
           // There was a connection error of some sort
           console.log('there was problem making call');
         };
