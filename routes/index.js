@@ -89,7 +89,7 @@ console.log(req.body);
     subJsons.push([])
     // this is sublayer for each data layer
     // should add more meaningful layers for each
-    if(dKinds[i] === 'roads')
+    if(dKinds[i] === 'roads') {
       reformedJson[dKinds[i]] = {
         major_road: {
           features: []
@@ -100,10 +100,71 @@ console.log(req.body);
         highway: {
           features:[]
         },
+        aerialway: {
+          features: []
+        },
+        rail: {
+          features:[]
+        },
+        ferry: {
+          features:[]
+        },
         etc: {
           features: []
         }
       }
+    } else if (dKinds[i] === 'boundaries') {
+      reformedJson[dKinds[i]] = {
+        country: {
+          features: []
+        },
+        state: {
+          features: []
+        },
+        aboriginal_lands: {
+          features: []
+        },
+        city_wall: {
+          features: []
+        },
+        fence: {
+          features: []
+        },
+        municipality: {
+          features: []
+        },
+        macroregion: {
+          features: []
+        },
+        etc: {
+          features: []
+        }
+      }
+    } else if (dKinds[i] === 'water') {
+      reformedJson[dKinds[i]] = {
+        basin: {
+          features: []
+        },
+        dock: {
+          features: []
+        },
+        lake: {
+          features: []
+        },
+        ocean: {
+          features: []
+        },
+        riverbank: {
+          features: []
+        },
+        swimming_pool: {
+          features: []
+        },
+        etc: {
+          features: []
+        }
+      }
+    }
     else
       reformedJson[dKinds[i]] = {
         etc: {
@@ -250,10 +311,13 @@ console.log(req.body);
           let g = svg.append('g')
           g.attr('id',dataK)
 
+
           for(let subKinds in oneDataKind) {
             let tempSubK = oneDataKind[subKinds]
             let subG = g.append('g')
             subG.attr('id',subKinds)
+            subG.attr(":inkscape:groupmode","layer")
+            subG.attr(':inkscape:label', dataK+subKinds+'layer')
             for(let f in tempSubK.features) {
               let geoFeature = tempSubK.features[f]
               let previewFeature = previewPath(geoFeature);
