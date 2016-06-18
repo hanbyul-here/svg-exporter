@@ -148,7 +148,7 @@ console.log(req.body);
 
   var getGeojsonPromise = function (x, y) {
     var geoJsonPromise = new Promise(function(resolve, reject) {
-      var baseurl = "http://vector.mapzen.com/osm/"+dataKind+"/"+zoom+"/"+tilesToFetch[x][y].lon + "/" + tilesToFetch[x][y].lat + ".json?api_key="+key;
+      var baseurl = "http://vector.mapzen.com/osm/all/"+zoom+"/"+tilesToFetch[x][y].lon + "/" + tilesToFetch[x][y].lat + ".json?api_key="+key;
       var timeout = Math.floor((x*y + y) / qps ) * delayTime;
       var request = new XMLHttpRequest();
       setTimeout(function () {
@@ -199,16 +199,18 @@ console.log(req.body);
     for (let response in result) {
       let responseResult = result[response]
       for (let dataFeature in responseResult) {
-        // dataFeature here has all names
-        for (let i = 0; i < responseResult[dataFeature].features.length; i++) {
-          var feature = responseResult[dataFeature].features[i];
-          var dataKindTitle = feature.properties.kind;
-           if(reformedJson[dataFeature].hasOwnProperty(dataKindTitle)) {
-             reformedJson[dataFeature][dataKindTitle].features.push(feature);
-           }
-           else {
-             reformedJson[dataFeature]['etc'].features.push(feature)
-           }
+        if(isInArray(dataFeature, dKinds)) {
+          // dataFeature here has all names
+          for (let i = 0; i < responseResult[dataFeature].features.length; i++) {
+            var feature = responseResult[dataFeature].features[i];
+            var dataKindTitle = feature.properties.kind;
+             if(reformedJson[dataFeature].hasOwnProperty(dataKindTitle)) {
+               reformedJson[dataFeature][dataKindTitle].features.push(feature);
+             }
+             else {
+               reformedJson[dataFeature]['etc'].features.push(feature)
+            }
+          }
         }
       }
     }
@@ -286,6 +288,10 @@ console.log(req.body);
 
 
 });
+
+function isInArray(value, array) {
+  return array.indexOf(value) > -1;
+}
 
 ////here all maps spells are!
 //convert lat/lon to mercator style number or reverse.
