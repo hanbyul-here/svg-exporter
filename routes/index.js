@@ -8,14 +8,12 @@ var fs = require('fs');
 var jsdom = require('jsdom');
 
 var d3 = require('d3');
-var fetch = require('node-fetch');
 var XMLHttpRequest = require('xhr2')
 
 // use key saved in config file if there is a config file in same directory
 if (fs.existsSync( __dirname + '/config.js')) {
   var config = require('./config.js')
 }
-
 
 var Promise = require('promise/lib/es6-extensions');
 
@@ -36,7 +34,7 @@ router.post('/request-map', function(req, res, next) {
 
   // -74.0059700, 40.7142700
   // 74.0059700 W, 40.7142700 N
-console.log(req.body);
+  console.log(req.body);
   var zoom = parseInt(req.body.zoomLevel);
 
   var lat1 = lat2tile(parseFloat(req.body.startLat), zoom)
@@ -138,7 +136,6 @@ console.log(req.body);
     zoom: zoom
   };
 
-  var qps = 10; // let's make only 1000 calls per sec
   var delayTime = 1000;
 
 
@@ -146,77 +143,83 @@ console.log(req.body);
 
   var data;
 
-  var getGeojsonPromise = function (x, y) {
-    var geoJsonPromise = new Promise(function(resolve, reject) {
-      var baseurl = "http://vector.mapzen.com/osm/"+dataKind+"/"+zoom+"/"+tilesToFetch[x][y].lon + "/" + tilesToFetch[x][y].lat + ".json?api_key="+key;
-      var timeout = Math.floor((x*y + y) / qps ) * delayTime;
-      var request = new XMLHttpRequest();
-      setTimeout(function () {
-        request.open('GET', baseurl, true);
-        request.onload = function() {
-          if (request.status >= 200 && request.status < 400) {
-            // Success!
-            var data = JSON.parse(request.responseText);
-            resolve(data);
+var xCount = latArr.length - 1;
+var yCount = lonArr.length - 1;
+var originalYCount = yCount;
+
+
+var jsonArray = [];
+
+function getURL(x, y) {
+  var xc = x;
+  var yc = y;
+  if (x < 0) xc = 0;
+  if (y < 0) yc = 0;
+
+  return "https://tile.mapzen.com/mapzen/vector/v1/"+dataKind+"/"+zoom+"/"+tilesToFetch[xc][yc].lon + "/" + tilesToFetch[xc][yc].lat + ".json?api_key="+key;
+}
+
+function makeCall() {
+
+  var request = new XMLHttpRequest();
+  console.log('xcount : ' + xCount)
+  console.log('ycount : ' + yCount)
+  //var url = 'http://openAPI.seoul.go.kr:8088/'+key+'/xml/SearchLocationOfSTNByIDService/1/5/'+subwayStationList[stationCount].station_cd+'/';
+  var url = getURL(xCount, yCount);
+  request.open('GET', url, true);
+  request.onload = function() {
+    if (request.status >= 200 && request.status < 400) {
+      // Success!
+      var data = JSON.parse(request.responseText);
+      jsonArray.push(data);
+      if (xCount > 0) {
+        if (yCount > 0) {
+          yCount--;
+        } else {
+          xCount--;
+          yCount = originalYCount;
+        }
+        setTimeout(makeCall, delayTime);
+      } else {
+        if (xCount === 0) {
+          if (yCount > 0) {
+            yCount--;
+            setTimeout(makeCall, delayTime);
           } else {
-            // We reached our target server, but it returned an error
-            console.log('Server returend error')
-            reject();
+          writeSVGFile(jsonArray);
           }
-        };
-
-        request.onerror = function(err) {
-          // There was a connection error of some sort
-          console.log('there was problem making call');
-        };
-
-        request.send();
-
-      }, timeout);
-    })
-
-    return geoJsonPromise;
-  }
-
-  var promiseArrs = [];
-
-  var xarr = []
-  var yarr = []
-
-  for(let i = 0; i<tilesToFetch.length; i++) xarr.push(i);
-  for(let j = 0; j<tilesToFetch[0].length; j++) yarr.push(j);
-
-  for(let x of xarr) {
-    for(let y of yarr) {
-      promiseArrs.push(getGeojsonPromise(x,y))
+        } 
+      }
+    } else {
+      console.log('We reached our target server, but it returned an error')
     }
-  }
+  };
+
+  request.onerror = function() {
+    console.log('err');
+    // There was a connection error of some sort
+  };
+  request.send();
+}
 
 
+function writeSVGFile(resultArray) {
 
-  Promise.all(promiseArrs)
-  .then(function (result) {
+  for (let result of resultArray) {
+
     for (let response in result) {
       let responseResult = result[response]
-      for (let dataFeature in responseResult) {
-        // dataFeature here has all names
-        for (let i = 0; i < responseResult[dataFeature].features.length; i++) {
-          var feature = responseResult[dataFeature].features[i];
+        for (let i = 0; i < responseResult.features.length; i++) {
+          var feature = responseResult.features[i];
           var dataKindTitle = feature.properties.kind;
-           if(reformedJson[dataFeature].hasOwnProperty(dataKindTitle)) {
-             reformedJson[dataFeature][dataKindTitle].features.push(feature);
-           }
-           else {
-             reformedJson[dataFeature]['etc'].features.push(feature)
-           }
+          if(reformedJson[response].hasOwnProperty(dataKindTitle)) {
+            reformedJson[response][dataKindTitle].features.push(feature);
+          } else {
+            reformedJson[response]['etc'].features.push(feature)
+          }
         }
-      }
     }
-    return reformedJson;
-  //resolve(reformedJson)
-  }, function (reason) {
-    console.log(reason)
-  }).then(function (reResult) {
+  }
 
 
     //d3 needs query selector from dom
@@ -272,20 +275,17 @@ console.log(req.body);
       fs.writeFile(outputLocation, window.d3.select('.container').html(),(err)=> {
           if(err) throw err;
           console.log('yess svg is there')
-          res.send(startLon + ' ' + startLat + 'process is done, waiting for a file to be written');
        })
-      //jsdom done function done
-      }
-    });
+      //jsdom done function done 
+    }
   })
-  .catch(
-    function(err) {
-      console.log(err)
-      res.send('error: ' + err);
-  });
-
+}
+// render response page first
+res.send(startLon + ' ' + startLat + 'request submitted, waiting for a file to be written');
+makeCall();
 
 });
+
 
 ////here all maps spells are!
 //convert lat/lon to mercator style number or reverse.
