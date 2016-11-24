@@ -28,6 +28,72 @@ router.get('/request-map', function(req, res, next) {
   res.redirect('/', { title: "Let's make map" });
 });
 
+function setupJson(dKinds) {
+  var formattedJson = {};
+  var dataKind = dKinds.join(',');
+
+  for (var i = 0; i < dKinds.length; i++) {
+    // this is sublayer for each data layer
+    // should add more meaningful layers for each
+    if(dKinds[i] === 'roads')
+      formattedJson[dKinds[i]] = {
+        major_road: {
+          features: []
+        },
+        minor_road: {
+          features: []
+        },
+        highway: {
+          features:[]
+        },
+        path: {
+          features: []
+        },
+        etc: {
+          features: []
+        }
+      }
+    else
+      formattedJson[dKinds[i]] = {
+        etc: {
+          features: []
+        }
+      }
+  }
+  return formattedJson;
+}
+
+
+function getTilesToFetch(startLat, endLat, startLon, endLon) {
+  const tilesToFetch = [];
+  // for(let i = startLon; i <= endLon; i++) lonArr.push(i);
+  for(let j = startLat; j <= endLat; j++) {
+    const coords = [];
+    for(let i = startLon; i <= endLon; i++) {
+      coords.push({
+        lat: j,
+        lon: i
+      });
+    }
+    tilesToFetch.push(coords);
+  }
+  return tilesToFetch;
+}
+
+
+//     latArr.push(j);
+//   for(let _lat of latArr) {
+//     var coords = [];
+//     for(let _lon of lonArr) {
+//       coords.push({
+//         lat: _lat,
+//         lon: _lon
+//       })
+//     }
+//     tilesToFetch.push(coords);
+//   }
+// }
+
 
 router.post('/request-map', function(req, res, next) {
   var startLat, endLat, startLon, endLon;
@@ -59,19 +125,10 @@ router.post('/request-map', function(req, res, next) {
     endLon = lon2;
   }
 
-
   var tileWidth = 100;
 
-  //"boundaries, buildings, earth, landuse, places, pois, roads, transit, water"
+  // "boundaries, buildings, earth, landuse, places, pois, roads, transit, water"
   // need uis for datakind, zoom
- // var dataKind = "boundaries,earth,landuse,places,roads,water"
-  // only dominant kinds from osm will be categorized
-
-
-  //var dKinds = dataKind.split(',');
-  var reformedJson = {};
-  var subJsons = [];
-
 
   var dKinds = [];
   if(req.body.boundaries) dKinds.push('boundaries');
@@ -81,153 +138,105 @@ router.post('/request-map', function(req, res, next) {
   if(req.body.roads) dKinds.push('roads');
   if(req.body.water) dKinds.push('water');
 
-  var dataKind = dKinds.join(',');
-
-  for (var i = 0; i < dKinds.length; i++) {
-    subJsons.push([])
-    // this is sublayer for each data layer
-    // should add more meaningful layers for each
-    if(dKinds[i] === 'roads')
-      reformedJson[dKinds[i]] = {
-        major_road: {
-          features: []
-        },
-        minor_road: {
-          features: []
-        },
-        highway: {
-          features:[]
-        },
-        etc: {
-          features: []
-        }
-      }
-    else
-      reformedJson[dKinds[i]] = {
-        etc: {
-          features: []
-        }
-      }
-  }
-
-  var tilesToFetch = [];
-
-  var latArr = [];
-  var lonArr = [];
+  var tilesToFetch = getTilesToFetch(startLat, endLat, startLon, endLon);
 
   var key = req.body.apikey || config.key;
 
-  for(let i = startLon; i <= endLon; i++) lonArr.push(i);
-  for(let j = startLat; j <= endLat; j++) latArr.push(j);
-  for(let _lat of latArr) {
-    var coords = [];
-    for(let _lon of lonArr) {
-      coords.push({
-        lat: _lat,
-        lon: _lon
-      })
-    }
-    tilesToFetch.push(coords);
-  }
-
-  var centerLatLon = {
-    lon: tile2Lon(startLon, zoom),
-    lat: tile2Lat(startLat, zoom),
-    zoom: zoom
-  };
-
   var delayTime = 1000;
 
-
-  var outputLocation = 'svgmap'+ tilesToFetch[0][0].lon +'-'+tilesToFetch[0][0].lat +'-'+ centerLatLon.zoom +'.svg';
+  var outputLocation = 'svgmap'+ tilesToFetch[0][0].lon +'-'+tilesToFetch[0][0].lat +'-'+zoom +'.svg';
 
   var data;
 
-var xCount = latArr.length - 1;
-var yCount = lonArr.length - 1;
-var originalYCount = yCount;
+  var xCount = tilesToFetch.length-1;//latArr.length - 1;
+  var yCount = tilesToFetch[0].length-1;//lonArr.length - 1;
+  var originalYCount = yCount;
+  
 
+  function getURL(x, y) {
+    var xc = x;
+    var yc = y;
+    if (x < 0) xc = 0;
+    if (y < 0) yc = 0;
 
-var jsonArray = [];
+    return "https://tile.mapzen.com/mapzen/vector/v1/all/"+zoom+"/"+tilesToFetch[xc][yc].lon + "/" + tilesToFetch[xc][yc].lat + ".json?api_key="+key;
+  }
 
-function getURL(x, y) {
-  var xc = x;
-  var yc = y;
-  if (x < 0) xc = 0;
-  if (y < 0) yc = 0;
+  var jsonArray = [];
+  
+  function makeCall() {
+    var request = new XMLHttpRequest();
+    var url = getURL(xCount, yCount);
+    console.log(url);
+    request.open('GET', url, true);
+    
+    request.onload = function() {
+      if (request.status >= 200 && request.status < 400) {
+        // Success!
+        var data = JSON.parse(request.responseText);
+        jsonArray.push(data);
 
-  return "https://tile.mapzen.com/mapzen/vector/v1/"+dataKind+"/"+zoom+"/"+tilesToFetch[xc][yc].lon + "/" + tilesToFetch[xc][yc].lat + ".json?api_key="+key;
-}
-
-function makeCall() {
-
-  var request = new XMLHttpRequest();
-  console.log('xcount : ' + xCount)
-  console.log('ycount : ' + yCount)
-  //var url = 'http://openAPI.seoul.go.kr:8088/'+key+'/xml/SearchLocationOfSTNByIDService/1/5/'+subwayStationList[stationCount].station_cd+'/';
-  var url = getURL(xCount, yCount);
-  request.open('GET', url, true);
-  request.onload = function() {
-    if (request.status >= 200 && request.status < 400) {
-      // Success!
-      var data = JSON.parse(request.responseText);
-      jsonArray.push(data);
-      if (xCount > 0) {
-        if (yCount > 0) {
-          yCount--;
-        } else {
-          xCount--;
-          yCount = originalYCount;
-        }
-        setTimeout(makeCall, delayTime);
-      } else {
-        if (xCount === 0) {
+        if (xCount > 0) {
           if (yCount > 0) {
             yCount--;
-            setTimeout(makeCall, delayTime);
           } else {
-          writeSVGFile(jsonArray);
+            xCount--;
+            yCount = originalYCount;
           }
-        } 
-      }
-    } else {
-      console.log('We reached our target server, but it returned an error')
-    }
-  };
-
-  request.onerror = function() {
-    console.log('err');
-    // There was a connection error of some sort
-  };
-  request.send();
-}
-
-
-function writeSVGFile(resultArray) {
-
-  for (let result of resultArray) {
-
-    for (let response in result) {
-      let responseResult = result[response]
-        for (let i = 0; i < responseResult.features.length; i++) {
-          var feature = responseResult.features[i];
-          var dataKindTitle = feature.properties.kind;
-          if(reformedJson[response].hasOwnProperty(dataKindTitle)) {
-            reformedJson[response][dataKindTitle].features.push(feature);
-          } else {
-            reformedJson[response]['etc'].features.push(feature)
-          }
+          setTimeout(makeCall, delayTime);
+        } else {
+          if (xCount === 0) {
+            if (yCount > 0) {
+              yCount--;
+              setTimeout(makeCall, delayTime);
+            } else {
+              bakeJson(jsonArray);
+            }
+          } 
         }
-    }
+      } else {
+        console.log('We reached our target server, but it returned an error')
+      }
+    };
+
+    request.onerror = function() {
+      console.log('There was a connection error of some sort');
+      // There was a connection error of some sort
+    };
+    request.send();
   }
 
 
+function bakeJson(resultArray) {
+  var geojsonToReform = setupJson(dKinds);
+  // response geojson array
+  for (let result of resultArray) {
+    // inside of one object
+    for (let response in result) {
+      // if tthe property is one of dataKinds that user selected
+      if (dKinds.indexOf(response) > -1) {
+        let responseResult = result[response];
+          for (let feature of responseResult.features) {
+            var dataKindTitle = feature.properties.kind;
+            if(geojsonToReform[response].hasOwnProperty(dataKindTitle)) {
+              geojsonToReform[response][dataKindTitle].features.push(feature);
+            } else {
+              geojsonToReform[response]['etc'].features.push(feature)
+            }
+          }
+        }
+      }
+    }
+    writeSVGFile(geojsonToReform);
+  }
+
+  function writeSVGFile(reformedJson) {
+    console.log(reformedJson);
     //d3 needs query selector from dom
     jsdom.env({
-
-      html:'',
-      features:{ QuerySelector:true }, //you need query selector for D3 to work
-      done:function(errors, window) {
+      html: '',
+      features: { QuerySelector: true }, //you need query selector for D3 to work
+      done: function(errors, window) {
         window.d3 = d3.select(window.document);
 
         var svg = window.d3.select('body')
@@ -240,16 +249,16 @@ function writeSVGFile(resultArray) {
               })
 
         var previewProjection = d3.geo.mercator()
-                        .center([centerLatLon.lon, centerLatLon.lat])
+                        .center([tile2Lon(startLon, zoom), tile2Lat(startLat, zoom)])
                         //this are carved based on zoom 16, fit into 100px * 100px rect
-                        .scale(600000* tileWidth/57.5 * Math.pow(2,(centerLatLon.zoom-16)))
+                        .scale(600000* tileWidth/57.5 * Math.pow(2,(zoom-16)))
                         .precision(.0)
                         . translate([0, 0])
 
         var previewPath = d3.geo.path().projection(previewProjection);
 
         for (let dataK in reformedJson) {
-          let oneDataKind = reformedJson[dataK]
+          let oneDataKind = reformedJson[dataK];
           let g = svg.append('g')
           g.attr('id',dataK)
 
@@ -261,7 +270,6 @@ function writeSVGFile(resultArray) {
               let geoFeature = tempSubK.features[f]
               let previewFeature = previewPath(geoFeature);
 
-
               if(previewFeature && previewFeature.indexOf('a') > 0) ;
               else {
                 subG.append('path')
@@ -272,18 +280,20 @@ function writeSVGFile(resultArray) {
             }
           }
         }
-      fs.writeFile(outputLocation, window.d3.select('.container').html(),(err)=> {
+        
+        fs.writeFile(outputLocation, window.d3.select('.container').html(),(err)=> {
           if(err) throw err;
           console.log('yess svg is there')
-       })
+        })
+        
       //jsdom done function done 
-    }
-  })
-}
-// render response page first
-res.send(startLon + ' ' + startLat + 'request submitted, waiting for a file to be written');
-makeCall();
-
+      }
+    })
+  }
+  
+  // render response page first
+  res.send(startLon + ' ' + startLat + 'request submitted, waiting for a file to be written');
+  makeCall();
 });
 
 
