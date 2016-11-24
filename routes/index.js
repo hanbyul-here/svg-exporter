@@ -35,7 +35,7 @@ function setupJson(dKinds) {
   for (var i = 0; i < dKinds.length; i++) {
     // this is sublayer for each data layer
     // should add more meaningful layers for each
-    if(dKinds[i] === 'roads')
+    if(dKinds[i] === 'roads') {
       formattedJson[dKinds[i]] = {
         major_road: {
           features: []
@@ -46,13 +46,92 @@ function setupJson(dKinds) {
         highway: {
           features:[]
         },
+        aerialway: {
+          features: []
+        },
+        rail: {
+          features:[]
+        },
         path: {
+          features:[]
+        },
+        ferry: {
+          features:[]
+        },
+        etc: {
+          features: []
+        }
+      }
+    } else if (dKinds[i] === 'boundaries') {
+      formattedJson[dKinds[i]] = {
+        country: {
+          features: []
+        },
+        county: {
+          features: []
+        },
+        disputed: {
+          features: []
+        },
+        indefinite: {
+          features: []
+        },
+        interminate: {
+          features: []
+        },
+        lease_limit: {
+          features: []
+        },
+        line_of_control: {
+          features: []
+        },
+        locality: {
+          features: []
+        },
+        microregion: {
+          features: []
+        },
+        map_unit: {
+          features: []
+        },
+        region: {
           features: []
         },
         etc: {
           features: []
         }
       }
+    } else if (dKinds[i] === 'water') {
+      formattedJson[dKinds[i]] = {
+        basin: {
+          features: []
+        },
+        bay: {
+          features: []
+        },
+        dock: {
+          features: []
+        },
+        lake: {
+          features: []
+        },
+        ocean: {
+          features: []
+        },
+        river: {
+          features: []
+        },
+        riverbank: {
+          features: []
+        },
+        swimming_pool: {
+          features: []
+        },
+        etc: {
+          features: []
+        }
+      }
+    }
     else
       formattedJson[dKinds[i]] = {
         etc: {
@@ -79,21 +158,6 @@ function getTilesToFetch(startLat, endLat, startLon, endLon) {
   }
   return tilesToFetch;
 }
-
-
-//     latArr.push(j);
-//   for(let _lat of latArr) {
-//     var coords = [];
-//     for(let _lon of lonArr) {
-//       coords.push({
-//         lat: _lat,
-//         lon: _lon
-//       })
-//     }
-//     tilesToFetch.push(coords);
-//   }
-// }
-
 
 router.post('/request-map', function(req, res, next) {
   var startLat, endLat, startLon, endLon;
@@ -231,7 +295,6 @@ function bakeJson(resultArray) {
   }
 
   function writeSVGFile(reformedJson) {
-    console.log(reformedJson);
     //d3 needs query selector from dom
     jsdom.env({
       html: '',
@@ -297,8 +360,8 @@ function bakeJson(resultArray) {
 });
 
 
-////here all maps spells are!
-//convert lat/lon to mercator style number or reverse.
+// here all maps spells are!
+// convert lat/lon to mercator style number or reverse.
 function long2tile(lon,zoom) {
   return (Math.floor((lon+180)/360*Math.pow(2,zoom)));
 }
@@ -306,7 +369,6 @@ function lat2tile(lat,zoom)  {
   return (Math.floor((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom)));
 }
 
-//shold check it will work
 function tile2Lon(tileLon, zoom) {
   return (tileLon*360/Math.pow(2,zoom)-180).toFixed(10);
 }
