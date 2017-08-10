@@ -1,6 +1,4 @@
-"use strict";
-
-require("babel-polyfill");
+'use strict';
 
 import { Router } from 'express';
 
