@@ -33,10 +33,13 @@ router.post('/request-map', function(req, res, next) {
 
   const conf = {
     key: req.body.apikey || config.key,
+    inkscape: req.body.inkscape || false,
     delayTime: config.delay || 200,
     tileWidth: config.tileWidth || 100,
     outputLocation: 'svgmap'
   }
+
+  res.send(requestedTileSpec.startTile.lat + ' ' + requestedTileSpec.startTile.lon + 'request submitted, waiting for a file to be written')
 
   const layers = ['boundaries','earth', 'landuse', 'places', 'roads', 'water'];
   let dKinds = [];
@@ -45,10 +48,10 @@ router.post('/request-map', function(req, res, next) {
   }
 
   const tilesToFetch = getTileNumberToFetch(requestedTileSpec.startTile, requestedTileSpec.endTile);
-
+  console.log('Number of tiles to fetch : ' + tilesToFetch[0].length * tilesToFetch.length);
 
   const getTiles = function () {
-    console.log('111');
+    console.log('1.Started Fetching Tiles');
     var jsonArray = [];
 
     let tileUrlsToFetch = [];
@@ -60,6 +63,7 @@ router.post('/request-map', function(req, res, next) {
 
     const getEachTile = (url) =>
       new Promise((resolve, reject) => {
+        console.log(url);
         const xhr = new XMLHttpRequest();
         xhr.open("GET", url);
         xhr.onload = () => resolve(JSON.parse(xhr.responseText));
@@ -83,7 +87,7 @@ router.post('/request-map', function(req, res, next) {
 
 
 function bakeJson(resultArray) {
-  console.log('2222');
+  console.log('2. Resorting json');
   return new Promise( function(resolve, reject,) {
     var geojsonToReform = setupJson(dKinds);
     // response geojson array
@@ -113,7 +117,7 @@ function bakeJson(resultArray) {
 
 
   function writeSVGFile(reformedJson) {
-    console.log('333');
+    console.log('3. Baking json to svg');
     return new Promise( function(resolve, reject,) {
       //d3 needs query selector from dom
       jsdom.env({
@@ -147,7 +151,13 @@ function bakeJson(resultArray) {
 
             for(let subKinds in oneDataKind) {
               let tempSubK = oneDataKind[subKinds]
-              let subG = g.append('g')
+              let subG = g.append('g');
+              if (conf.inkscape) {
+                subG.attr('id',subKinds)
+                    .attr(":inkscape:groupmode","layer")
+                    .attr(':inkscape:label', dataK+subKinds+'layer');
+              }
+
               subG.attr('id',subKinds)
               for(let f in tempSubK.features) {
                 let geoFeature = tempSubK.features[f]
@@ -180,7 +190,7 @@ function bakeJson(resultArray) {
   getTiles()
   .then((result) => bakeJson(result))
   .then((result) => writeSVGFile(result))
-  .then(() => res.send(requestedTileSpec.startTile.lat + ' ' + requestedTileSpec.startTile.lon + 'request submitted, waiting for a file to be written'))
+  .then(() => res.write(requestedTileSpec.startTile.lat + ' ' + requestedTileSpec.startTile.lon + 'SVG is there'))
 
 });
 

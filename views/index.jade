@@ -25,6 +25,10 @@ block content
             input.form-control#endLon(type='text' name='endLon' placeholder="end longitude")
 
           .form-group
+            input(type='checkbox', name='inkscape')
+            label(for='inkscape') Is this for Inkscape?
+
+          .form-group
             select#zoomLevel(name='zoomLevel')
               option(value='16') 16
               option(value='15') 15
