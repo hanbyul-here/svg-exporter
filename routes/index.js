@@ -190,7 +190,7 @@ function bakeJson(resultArray) {
   getTiles()
   .then((result) => bakeJson(result))
   .then((result) => writeSVGFile(result))
-  .then(() => res.write(requestedTileSpec.startTile.lat + ' ' + requestedTileSpec.startTile.lon + 'SVG is there'))
+  .then(() => console.log(requestedTileSpec.startTile.lat + ' ' + requestedTileSpec.startTile.lon + 'SVG is there'))
 
 });
 
