@@ -9,7 +9,9 @@ npm install
 npm start
 ```
 
-Go to `localhost:3000` in any browser.
+Go to `localhost:3000` in any browser. This is the example SVG you can get through SVG exporter.
+
+![example SVG](./examples/svgmap19294-24637-16.svg)
 
 ### Mapzen Vector tile key
 

@@ -5,3 +5,4 @@ config.js
 .DS_Store
 .DS_Store?
 *.svg
+!examples/svgmap19294-24637-16.svg
